@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#234f42">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Книга песен">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Книга песен</title>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Книга песен</h1>
+      <p id="status">Подготовка…</p>
+    </div>
+    <button id="sync" class="icon-button" aria-label="Синхронизировать">↻</button>
+  </header>
+
+  <main>
+    <section id="setup" class="card hidden">
+      <h2>Подключение</h2>
+      <p>Введите GitLab-токен с правом <b>api</b>. Он останется только на этом iPhone.</p>
+      <input id="token" type="password" autocapitalize="none" autocomplete="off" placeholder="glpat-…">
+      <button id="connect" class="primary">Подключить и загрузить песни</button>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-scope="choir">Хор</button>
+        <button class="tab" data-scope="general">Общее пение</button>
+      </div>
+      <input id="search" type="search" placeholder="Номер или название песни" autocomplete="off">
+      <p id="summary" class="summary"></p>
+      <div id="songs" class="song-list"></div>
+      <button id="settings" class="link-button">Заменить GitLab-токен</button>
+    </section>
+  </main>
+
+  <dialog id="songDialog">
+    <div class="dialog-head">
+      <div><div id="songNumber" class="song-number"></div><h2 id="songTitle"></h2></div>
+      <button id="closeDialog" class="icon-button" aria-label="Закрыть">×</button>
+    </div>
+    <pre id="lyrics"></pre>
+    <h3>Даты исполнения</h3>
+    <div id="dates"></div>
+    <div class="date-add">
+      <input id="newDate" type="date">
+      <button id="addDate" class="primary">Добавить дату</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
