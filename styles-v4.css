@@ -18,10 +18,13 @@ button:disabled { opacity:.55; cursor:default; }
 .tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:4px; margin-bottom:12px; background:#dfe5df; border-radius:12px; }
 .tab { padding:11px 6px; border-radius:9px; background:transparent; color:#355248; }
 .tab.active { background:white; color:#173d31; font-weight:700; box-shadow:0 1px 4px #0002; }
-.sort-bar { display:grid; grid-template-columns:auto minmax(0,1fr) 46px; gap:8px; align-items:center; margin-top:10px; }
-.sort-bar label { color:#5c6e67; font-size:13px; }
-.sort-bar select { width:100%; min-height:42px; border:1px solid #b9c2bd; border-radius:10px; padding:7px 31px 7px 10px; background:white; color:#16251f; font:inherit; }
-.sort-bar button { min-height:42px; border-radius:10px; background:#e1e9e4; color:#234f42; font-size:17px; font-weight:700; }
+.sort-block { margin-top:10px; }
+.sort-label { display:block; margin:0 2px 6px; color:#5c6e67; font-size:12px; }
+.sort-buttons { display:flex; gap:6px; overflow-x:auto; padding:1px 1px 5px; scrollbar-width:none; }
+.sort-buttons::-webkit-scrollbar { display:none; }
+.sort-buttons button { flex:0 0 auto; min-height:38px; padding:7px 11px; border:1px solid #c9d3cd; border-radius:10px; background:white; color:#36544a; }
+.sort-buttons button.active { border-color:#2f6b59; background:#2f6b59; color:white; font-weight:700; }
+.sort-buttons b { display:inline-block; min-width:10px; }
 .color-legend { display:flex; flex-wrap:wrap; gap:6px 13px; margin:10px 2px 0; color:#66756f; font-size:11px; }
 .color-legend span { display:inline-flex; align-items:center; gap:5px; }
 .color-legend i { width:10px; height:10px; border-radius:50%; }

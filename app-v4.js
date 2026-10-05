@@ -88,7 +88,7 @@ async function syncAll(silent=false) {
 async function pendingFor(scope) { return (await all('pending')).filter(x=>x.scope===scope); }
 async function loadSongs() {
   const snapshot=await get('snapshots',state.scope), ops=await pendingFor(state.scope);
-  state.songs=snapshot?structuredClone(snapshot.songs):[]; if(snapshot)merge({songs:state.songs},ops); render();
+  state.songs=snapshot?JSON.parse(JSON.stringify(snapshot.songs)):[]; if(snapshot)merge({songs:state.songs},ops); render();
 }
 async function addDate() {
   const date=$('newDate').value;if(!date||!state.selected)return;
@@ -101,7 +101,7 @@ async function editDate(oldDate) {
   await loadSongs(); reopenSelected(); toast('Изменение сохранено на iPhone'); if(navigator.onLine)syncAll(true);
 }
 function displayDate(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)?`${d.slice(8)}.${d.slice(5,7)}.${d.slice(0,4)}`:d;}
-function latestDate(song){const dates=[...(song.dates||[])].sort();return dates.length?dates.at(-1):'';}
+function latestDate(song){const dates=[...(song.dates||[])].sort();return dates.length?dates[dates.length-1]:'';}
 function themeText(song){return (song.themes||[]).map(x=>typeof x==='string'?x:x.name).filter(Boolean).join(', ');}
 function tintClass(date){if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return '';const last=new Date(date+'T00:00:00');if(Number.isNaN(last.getTime()))return '';const days=(Date.now()-last.getTime())/86400000;if(days<182)return 'tint-red';if(days<365)return 'tint-orange';return 'tint-green';}
 function naturalCompare(a,b){const sa=String(a),sb=String(b),ma=sa.match(/^(\d+)(.*)$/),mb=sb.match(/^(\d+)(.*)$/);if(ma&&mb){const la=ma[2]!==''?1:0,lb=mb[2]!==''?1:0;if(la!==lb)return la-lb;const d=Number(ma[1])-Number(mb[1]);if(d!==0)return d;return ma[2].localeCompare(mb[2],'ru',{sensitivity:'base'});}return sa.localeCompare(sb,'ru',{sensitivity:'base'});}
@@ -112,6 +112,8 @@ function openSong(index){const song=state.songs[index];state.selected={song,inde
 function reopenSelected(){if(!state.selected)return;const ref=state.selected.song;const index=state.songs.findIndex((s,i)=>keyOf(s,i)===keyOf(ref,state.selected.index))>=0?state.songs.findIndex((s,i)=>keyOf(s,i)===keyOf(ref,state.selected.index)):state.selected.index;openSong(index);}
 async function renderDates(song){const pending=await pendingFor(state.scope),pendingDates=new Set();pending.forEach(x=>{if(x.songKey===keyOf(song,state.selected.index)){if(x.type==='add')pendingDates.add(x.date);else pendingDates.add(x.newDate);}});const dates=[...(song.dates||[])].sort().reverse();$('dates').replaceChildren(...dates.map(d=>{const row=document.createElement('div');row.className='date-row';const label=document.createElement('span');label.textContent=displayDate(d);if(pendingDates.has(d))label.className='pending';const edit=document.createElement('button');edit.textContent='Изменить';edit.onclick=()=>editDate(d);row.append(label,edit);return row;}));}
 function setScope(scope){state.scope=scope;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.scope===scope));loadSongs();}
+function updateSortButtons(){document.querySelectorAll('[data-sort]').forEach(button=>{const active=button.dataset.sort===state.sort.key;button.classList.toggle('active',active);button.querySelector('b').textContent=active?(state.sort.dir==='asc'?'▲':'▼'):'';});}
+function changeSort(key){if(state.sort.key===key)state.sort.dir=state.sort.dir==='asc'?'desc':'asc';else state.sort={key,dir:'asc'};updateSortButtons();render();}
 function busy(on,text){$('sync').disabled=on;$('connect').disabled=on;$('status').textContent=text;}
 function toast(text){const el=$('toast');el.textContent=text;el.classList.remove('hidden');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.add('hidden'),4000);}
 function friendly(e){return e&&e.message?e.message:'Неизвестная ошибка';}
@@ -119,7 +121,9 @@ function escapeHtml(v){return String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 function showSetup(){ $('setup').classList.remove('hidden');$('app').classList.add('hidden');busy(false,'Требуется подключение'); }
 
 document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>setScope(x.dataset.scope));
-$('search').oninput=render;$('sortKey').onchange=()=>{state.sort.key=$('sortKey').value;state.sort.dir='asc';$('sortDir').textContent='▲';render();};$('sortDir').onclick=()=>{state.sort.dir=state.sort.dir==='asc'?'desc':'asc';$('sortDir').textContent=state.sort.dir==='asc'?'▲':'▼';render();};$('connect').onclick=connect;$('sync').onclick=()=>syncAll();$('addDate').onclick=addDate;$('closeDialog').onclick=()=>$('songDialog').close();
+$('search').oninput=render;document.querySelectorAll('[data-sort]').forEach(button=>button.onclick=()=>changeSort(button.dataset.sort));$('connect').onclick=connect;$('sync').onclick=()=>syncAll();$('addDate').onclick=addDate;$('closeDialog').onclick=()=>$('songDialog').close();
 $('settings').onclick=()=>{if(confirm('Заменить сохранённый GitLab-токен?'))showSetup();};
 window.addEventListener('online',()=>syncAll(true));
-(async()=>{if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');try{await navigator.storage?.persist?.()}catch{};const cfg=await config();if(cfg){$('app').classList.remove('hidden');await loadSongs();syncAll(true);}else showSetup();})();
+window.addEventListener('error',()=>busy(false,'Ошибка запуска — обновите приложение'));
+window.addEventListener('unhandledrejection',()=>busy(false,'Ошибка данных — нажмите синхронизацию'));
+(async()=>{if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');try{await navigator.storage?.persist?.()}catch{};const cfg=await config();if(cfg){$('app').classList.remove('hidden');await loadSongs();syncAll(true);}else showSetup();})().catch(e=>{busy(false,'Ошибка запуска');toast(friendly(e));});

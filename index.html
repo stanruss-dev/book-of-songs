@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Книга песен">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-v4.css">
   <title>Книга песен</title>
 </head>
 <body>
@@ -35,16 +35,15 @@
         <button class="tab" data-scope="general">Общее пение</button>
       </div>
       <input id="search" type="search" placeholder="Номер или название песни" autocomplete="off">
-      <div class="sort-bar">
-        <label for="sortKey">Сортировка</label>
-        <select id="sortKey">
-          <option value="number">По номеру</option>
-          <option value="title">По названию</option>
-          <option value="lastDate">По исполнению</option>
-          <option value="themes">По тематике</option>
-          <option value="updatedAt">По изменению</option>
-        </select>
-        <button id="sortDir" type="button" aria-label="Изменить направление сортировки">▲</button>
+      <div class="sort-block">
+        <span class="sort-label">Сортировка — нажмите ещё раз для обратного порядка:</span>
+        <div id="sortButtons" class="sort-buttons">
+          <button type="button" data-sort="number" class="active">№ <b>▲</b></button>
+          <button type="button" data-sort="title">Название <b></b></button>
+          <button type="button" data-sort="lastDate">Исполнение <b></b></button>
+          <button type="button" data-sort="themes">Тематика <b></b></button>
+          <button type="button" data-sort="updatedAt">Изменено <b></b></button>
+        </div>
       </div>
       <div class="color-legend" aria-label="Обозначение цветов">
         <span><i class="red"></i>до полугода</span>
@@ -72,6 +71,6 @@
   </dialog>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="app.js" defer></script>
+  <script src="app-v4.js" defer></script>
 </body>
 </html>
