@@ -3,7 +3,7 @@
 const API = 'https://gitlab.com/api/v4';
 const PROJECT = 'book-of-songs-data';
 const $ = id => document.getElementById(id);
-const state = { scope: 'choir', songs: [], selected: null, syncing: false };
+const state = { scope: 'choir', songs: [], selected: null, syncing: false, sort: { key: 'number', dir: 'asc' } };
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -101,8 +101,13 @@ async function editDate(oldDate) {
   await loadSongs(); reopenSelected(); toast('Изменение сохранено на iPhone'); if(navigator.onLine)syncAll(true);
 }
 function displayDate(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)?`${d.slice(8)}.${d.slice(5,7)}.${d.slice(0,4)}`:d;}
-function render(){const q=$('search').value.trim().toLocaleLowerCase('ru'),filtered=state.songs.map((song,index)=>({song,index})).filter(x=>!q||String(x.song.number??'').toLocaleLowerCase('ru').includes(q)||x.song.title.toLocaleLowerCase('ru').includes(q));
-  $('summary').textContent=`Песен: ${filtered.length}`;$('songs').replaceChildren(...filtered.map(({song,index})=>{const b=document.createElement('button');b.className='song';const dates=[...(song.dates||[])].sort();b.innerHTML=`<strong>${song.number?`№${escapeHtml(song.number)} · `:''}${escapeHtml(song.title)}</strong><span>${dates.length?'Последнее исполнение: '+displayDate(dates.at(-1)):'Не исполнялась'}</span>`;b.onclick=()=>openSong(index);return b;}));}
+function latestDate(song){const dates=[...(song.dates||[])].sort();return dates.length?dates.at(-1):'';}
+function themeText(song){return (song.themes||[]).map(x=>typeof x==='string'?x:x.name).filter(Boolean).join(', ');}
+function tintClass(date){if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return '';const last=new Date(date+'T00:00:00');if(Number.isNaN(last.getTime()))return '';const days=(Date.now()-last.getTime())/86400000;if(days<182)return 'tint-red';if(days<365)return 'tint-orange';return 'tint-green';}
+function naturalCompare(a,b){const sa=String(a),sb=String(b),ma=sa.match(/^(\d+)(.*)$/),mb=sb.match(/^(\d+)(.*)$/);if(ma&&mb){const la=ma[2]!==''?1:0,lb=mb[2]!==''?1:0;if(la!==lb)return la-lb;const d=Number(ma[1])-Number(mb[1]);if(d!==0)return d;return ma[2].localeCompare(mb[2],'ru',{sensitivity:'base'});}return sa.localeCompare(sb,'ru',{sensitivity:'base'});}
+function sortSongs(items){const getters={number:x=>x.song.number,title:x=>x.song.title,lastDate:x=>latestDate(x.song),themes:x=>themeText(x.song),updatedAt:x=>x.song.updatedAt};const get=getters[state.sort.key],sign=state.sort.dir==='asc'?1:-1;return [...items].sort((a,b)=>{const va=get(a),vb=get(b),ea=va===null||va===undefined||va==='',eb=vb===null||vb===undefined||vb==='';if(ea&&eb)return 0;if(ea)return 1;if(eb)return -1;return naturalCompare(va,vb)*sign;});}
+function render(){const q=$('search').value.trim().toLocaleLowerCase('ru'),matched=state.songs.map((song,index)=>({song,index})).filter(x=>!q||String(x.song.number??'').toLocaleLowerCase('ru').includes(q)||x.song.title.toLocaleLowerCase('ru').includes(q)),filtered=sortSongs(matched);
+  $('summary').textContent=`Песен: ${filtered.length}`;$('songs').replaceChildren(...filtered.map(({song,index})=>{const b=document.createElement('button'),last=latestDate(song),themes=themeText(song),updated=song.updatedAt?displayDate(String(song.updatedAt).split(/[ T]/)[0]):'';b.className=`song ${tintClass(last)}`.trim();b.innerHTML=`<strong>${song.number?`№${escapeHtml(song.number)} · `:''}${escapeHtml(song.title)}</strong><span class="last-played">${last?'Последнее исполнение: '+displayDate(last):'Не исполнялась'}</span>${themes||updated?`<span class="song-meta">${themes?`<span>Тематика: ${escapeHtml(themes)}</span>`:''}${updated?`<span>Изменено: ${escapeHtml(updated)}</span>`:''}</span>`:''}`;b.onclick=()=>openSong(index);return b;}));}
 function openSong(index){const song=state.songs[index];state.selected={song,index};$('songNumber').textContent=song.number?`Песня №${song.number}`:'';$('songTitle').textContent=song.title;$('lyrics').textContent=song.lyrics||'Текст пока не добавлен';renderDates(song);if(!$('songDialog').open)$('songDialog').showModal();}
 function reopenSelected(){if(!state.selected)return;const ref=state.selected.song;const index=state.songs.findIndex((s,i)=>keyOf(s,i)===keyOf(ref,state.selected.index))>=0?state.songs.findIndex((s,i)=>keyOf(s,i)===keyOf(ref,state.selected.index)):state.selected.index;openSong(index);}
 async function renderDates(song){const pending=await pendingFor(state.scope),pendingDates=new Set();pending.forEach(x=>{if(x.songKey===keyOf(song,state.selected.index)){if(x.type==='add')pendingDates.add(x.date);else pendingDates.add(x.newDate);}});const dates=[...(song.dates||[])].sort().reverse();$('dates').replaceChildren(...dates.map(d=>{const row=document.createElement('div');row.className='date-row';const label=document.createElement('span');label.textContent=displayDate(d);if(pendingDates.has(d))label.className='pending';const edit=document.createElement('button');edit.textContent='Изменить';edit.onclick=()=>editDate(d);row.append(label,edit);return row;}));}
@@ -114,7 +119,7 @@ function escapeHtml(v){return String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 function showSetup(){ $('setup').classList.remove('hidden');$('app').classList.add('hidden');busy(false,'Требуется подключение'); }
 
 document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>setScope(x.dataset.scope));
-$('search').oninput=render;$('connect').onclick=connect;$('sync').onclick=()=>syncAll();$('addDate').onclick=addDate;$('closeDialog').onclick=()=>$('songDialog').close();
+$('search').oninput=render;$('sortKey').onchange=()=>{state.sort.key=$('sortKey').value;state.sort.dir='asc';$('sortDir').textContent='▲';render();};$('sortDir').onclick=()=>{state.sort.dir=state.sort.dir==='asc'?'desc':'asc';$('sortDir').textContent=state.sort.dir==='asc'?'▲':'▼';render();};$('connect').onclick=connect;$('sync').onclick=()=>syncAll();$('addDate').onclick=addDate;$('closeDialog').onclick=()=>$('songDialog').close();
 $('settings').onclick=()=>{if(confirm('Заменить сохранённый GitLab-токен?'))showSetup();};
 window.addEventListener('online',()=>syncAll(true));
 (async()=>{if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');try{await navigator.storage?.persist?.()}catch{};const cfg=await config();if(cfg){$('app').classList.remove('hidden');await loadSongs();syncAll(true);}else showSetup();})();

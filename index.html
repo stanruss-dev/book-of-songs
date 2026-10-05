@@ -35,6 +35,22 @@
         <button class="tab" data-scope="general">Общее пение</button>
       </div>
       <input id="search" type="search" placeholder="Номер или название песни" autocomplete="off">
+      <div class="sort-bar">
+        <label for="sortKey">Сортировка</label>
+        <select id="sortKey">
+          <option value="number">По номеру</option>
+          <option value="title">По названию</option>
+          <option value="lastDate">По исполнению</option>
+          <option value="themes">По тематике</option>
+          <option value="updatedAt">По изменению</option>
+        </select>
+        <button id="sortDir" type="button" aria-label="Изменить направление сортировки">▲</button>
+      </div>
+      <div class="color-legend" aria-label="Обозначение цветов">
+        <span><i class="red"></i>до полугода</span>
+        <span><i class="orange"></i>от полугода до года</span>
+        <span><i class="green"></i>больше года</span>
+      </div>
       <p id="summary" class="summary"></p>
       <div id="songs" class="song-list"></div>
       <button id="settings" class="link-button">Заменить GitLab-токен</button>
